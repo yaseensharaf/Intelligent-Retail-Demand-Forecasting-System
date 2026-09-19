@@ -5,17 +5,10 @@
 <img src="https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white"/>
 <img src="https://img.shields.io/badge/Scikit--Learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white"/>
 <img src="https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white"/>
-<img src="https://img.shields.io/badge/Bootstrap-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white"/>
-<img src="https://img.shields.io/badge/Status-Complete-success?style=for-the-badge"/>
-
-<br/><br/>
 
 # Intelligent Retail Demand Forecasting System
 
-### Hybrid ARIMA-LSTM machine learning platform for retail sales forecasting and inventory optimisation
-
-
-<br/>
+**A hybrid ARIMA–LSTM forecasting pipeline and Flask dashboard for product-level retail sales**
 
 </div>
 
@@ -23,407 +16,230 @@
 
 ## Table of Contents
 
-1. [Overview](#-overview)
-2. [Key Features](#-key-features)
-3. [System Architecture](#-system-architecture)
-4. [Forecasting Model](#-forecasting-model)
-5. [Tech Stack](#-tech-stack)
-6. [Project Structure](#-project-structure)
-7. [Getting Started](#-getting-started)
-8. [Dashboard Features](#-dashboard-features)
-9. [Data Pipeline](#-data-pipeline)
-10. [Testing](#-testing)
-11. [Known Limitations & Future Work](#-known-limitations--future-work)
-12. [Developer](#-developer)
+1. [Overview](#overview)
+2. [Results](#results)
+3. [Dashboard](#dashboard)
+4. [How the Forecasting Works](#how-the-forecasting-works)
+5. [Project Structure](#project-structure)
+6. [Getting Started](#getting-started)
+7. [Data](#data)
+8. [API Endpoints](#api-endpoints)
+9. [Known Limitations & Future Work](#known-limitations--future-work)
+10. [Author & License](#author--license)
 
 ---
 
-## 🌟 Overview
+## Overview
 
-This project presents a fully functional **Intelligent Demand Planning System** designed to tackle one of retail's most persistent challenges: accurate product-level sales forecasting. Retailers operating with inaccurate forecasts face costly consequences — overstocking ties up capital, while stockouts drive customers away and erode revenue.
+Retailers that forecast poorly either overstock (tying up capital) or run out of stock (losing sales). This project forecasts **monthly unit sales per product** and puts the results in a web dashboard so a manager can see what is trending, what is underperforming, and what other stores are selling well.
 
-The system addresses this by combining a **hybrid ARIMA-LSTM machine learning engine** with a **real-time Flask web dashboard**, enabling retail managers to:
-
-- Forecast monthly product sales up to **5 years ahead** (2024–2028)
-- Identify **top-performing and underperforming** products across stores
-- Receive **data-driven inventory recommendations** derived from cross-store market analysis
-- Visualise **historical trends and future projections** in an interactive, accessible interface
-
-The system was trained and validated on **H&M transactional sales data (2015–2023)**, supplemented with two additional external retail datasets to broaden market context and forecasting accuracy.
-
+- **Forecasting:** each product gets a seasonal **ARIMA** model, blended with an **LSTM** trained on the residual series.
+- **Scope:** **174 products** across three stores: **H&M (80)**, **Retail Store 1 (54)**, and **Retail Store 2 (40)**.
+- **Data:** monthly sales history from **2015 to 2023**, forecast forward to **September 2028** (57 months).
+- **Dashboard:** a Flask app that lists products, shows each product's forecast chart, and ranks trending, lowest-selling, and top-selling items.
 
 ---
 
-## ✨ Key Features
+## Results
 
-### 🤖 Hybrid Forecasting Engine
-- **ARIMA** models linear seasonality and long-term sales trends per product
-- **LSTM** network captures non-linear residual patterns ARIMA cannot explain
-- **Weighted integration** (90% ARIMA + 10% LSTM) produces the final hybrid forecast
-- Forecasts generated for **60 months** (January 2024 – December 2028)
-- Products with fewer than 24 months of data are automatically excluded to ensure model stability
+Accuracy was measured **for H&M only**, on a held-out year: models were trained on 2015–2022 and scored against the 12 months of 2023, per product.
 
-### 📊 Interactive Dashboard
-- Browse and search all products from H&M and two external retail stores
-- Filter by **product name, category, and store**
-- View individual **interactive time-series charts** showing historical sales (2015–2023) and predictions (2024–2028)
-- Toggle between **light and dark mode**
-- Fully **responsive** — works on desktop, tablet, and mobile
+| Metric (80 H&M products) | Mean | Median | Min – Max |
+|---|---|---|---|
+| **MAPE** | **15.2%** | 15.6% | 7.2% – 25.7% |
+| MAE (units / month) | 129.9 | 129.1 | 57.6 – 342.3 |
+| RMSE (units / month) | 155.7 | 152.8 | 69.5 – 379.5 |
 
-### 📈 Business Intelligence Pages
-- **Trending Products** — top performers by aggregated post-2023 sales volume
-- **Lowest-Selling Products** — five weakest H&M products flagged for action
-- **Recommendations** — high-performing external products suggested to replace underperforming H&M inventory
-- **All Products** — complete cross-store product catalogue with dynamic search and category filtering
-
-### 🗂️ Data Management
-- Automated **CSV export** of all forecast outputs
-- Consolidated **Excel report** (`ALL_H&M.xlsx`) merging historical and predicted data for all products
-- Modular preprocessing pipeline handles missing values, date standardisation, and monthly resampling
+- Every product has a MAPE under **30%**, and **90%** of products are under **20%**.
+- Best: Hat (7.2%), Lace-Up Boots (7.9%), Sandals (8.6%). Hardest: Wool-Cotton Jacket (25.7%), Wool Trousers (24.6%), Fluffy Jacket (24.3%).
+- Per-product figures are in [`Sales_Forecast_Results_with_Accuracy/H&M_accuracy_metrics.csv`](Sales_Forecast_Results_with_Accuracy/H&M_accuracy_metrics.csv).
+- Retail Store 1 and Retail Store 2 models are trained on all data through 2023 (no held-out year), so no accuracy metrics are reported for them.
 
 ---
 
-## 🏗️ System Architecture
+## Dashboard
 
-The system is structured into three cleanly separated layers:
+A Flask + Flask-SocketIO web app (`src/app.py`) with server-rendered Jinja2 pages, a custom-CSS responsive layout, and a light/dark theme toggle that is remembered in the browser.
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        Presentation Layer                        │
-│                                                                  │
-│   Flask Web Server · HTML/CSS/JS · Bootstrap · Jinja2 Templates  │
-│   Dashboard Pages: Home · Trending · Lowest · Recommend · Help  │
-└────────────────────────────┬─────────────────────────────────────┘
-                             │  HTTP requests / template rendering
-┌────────────────────────────▼─────────────────────────────────────┐
-│                       Application Layer                          │
-│                                                                  │
-│   Data Preprocessing Pipeline  ──►  Hybrid Forecasting Engine   │
-│   (Pandas: resample, impute,         (ARIMA → residuals → LSTM   │
-│    feature engineering)               → weighted integration)    │
-│                                                                  │
-│   Recommendation Engine  ·  Product Insights Aggregator         │
-└────────────────────────────┬─────────────────────────────────────┘
-                             │  reads / writes
-┌────────────────────────────▼─────────────────────────────────────┐
-│                          Data Layer                              │
-│                                                                  │
-│   H_M.csv (2015–2023)  ·  Retail_Store_1/  ·  Retail_Store_2/   │
-│   Sales_Forecast_Results_with_Accuracy/  ·  ALL_H&M.xlsx         │
-│   static/images/  (product image rendering)                      │
-└──────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🧠 Forecasting Model
-
-The forecasting pipeline follows a sequential four-stage process:
-
-### Stage 1 — Data Preparation
-- Load H&M and external store datasets from CSV into Pandas DataFrames
-- Standardise `SaleDate` to datetime index using `to_datetime()`
-- Resample to **monthly intervals** using `resample('M').sum()` to reduce noise and surface seasonality
-- Impute missing values via **forward-fill** and **linear interpolation**
-- Engineer temporal features: `Month`, `Year`, `Season` for cyclical learning
-
-### Stage 2 — ARIMA Modelling
-- Apply `auto_arima()` (pmdarima) per product to automatically select optimal `(p, d, q)` and seasonal `(P, D, Q, m=12)` parameters by minimising **AIC and BIC**
-- Train on 2015–2023 data and project a **60-month forecast** (2024–2028)
-- Compute **residuals** = actual values − ARIMA predictions (capturing unexplained variance)
-
-### Stage 3 — LSTM Residual Modelling
-- Scale residuals to zero mean and unit variance using `StandardScaler`
-- Build input sequences with a **3-month sliding window**
-- LSTM architecture:
-  ```
-  Input → LSTM(100 units, ReLU) → Dropout(20%)
-        → LSTM(50 units, ReLU)  → Dropout(20%)
-        → Dense(1)
-  ```
-- Compiled with **Adam optimiser** and **MSE loss**; trained for 100 epochs, batch size 16
-- Inverse-transform predicted residuals back to original scale
-
-### Stage 4 — Hybrid Integration
-```
-Final Forecast = (0.90 × ARIMA Forecast) + (0.10 × LSTM Residual Forecast)
-```
-- Outputs rounded to nearest integer and floored at 1 to prevent negative predictions
-- Results exported as **CSV** and **PNG** visualisation per product
-
-```
-Historical Sales (solid blue) ────────────┐
-                                           ├──► Merged Chart per Product
-Predicted Sales (dashed red) ─────────────┘
-```
-
----
-
-## 🛠️ Tech Stack
-
-| Category | Technology | Purpose |
+| Page | Route | What it shows |
 |---|---|---|
-| **Language** | Python 3.x | All backend logic, modelling, and data processing |
-| **Deep Learning** | TensorFlow / Keras | LSTM model architecture and training |
-| **Statistical ML** | pmdarima / Statsmodels | ARIMA model fitting with auto-parameter selection |
-| **Data Processing** | Pandas, NumPy | Data loading, resampling, feature engineering |
-| **Preprocessing** | Scikit-learn | StandardScaler for residual normalisation |
-| **Visualisation** | Matplotlib, Plotly | Forecast plots and dashboard charts |
-| **Web Framework** | Flask | Backend server and REST API endpoints |
-| **Frontend** | HTML, CSS, JavaScript, Bootstrap | Responsive dashboard UI |
-| **Templating** | Jinja2 | Dynamic page rendering |
-| **API Testing** | Postman | Endpoint validation and error-case testing |
-| **Data Format** | CSV, Excel (`.xlsx`) | Dataset storage and forecast export |
-| **Methodology** | CRISP-DM + Agile Scrum | Project planning and iterative development |
+| **Home** | `/` | H&M product cards with **search** (name or category) and a store filter. **Show Image** displays that product's forecast chart. |
+| **All Products** | `/all_products.html` | Every product from all three stores (174), with search and store filter. |
+| **Trending** | `/trending.html` | Best sellers across all stores since Jan 2023: the top 5 per store, ranked to a top 15 overall. |
+| **Top-Selling (Recommend)** | `/recommend.html` | The top 5 products from each of Retail Store 1 and Retail Store 2 since Jan 2023. |
+| **Lowest-Selling** | `/lowest.html` | The 5 lowest-selling H&M products since Jan 2023. |
+| **Help** | `/help.html` | A plain-language guide to using each page. |
+
+> "Since Jan 2023" means 2023 actual sales plus the 2024–2028 forecast, summed per product.
+
+Forecast charts show historical sales (blue) and predicted sales (red, dashed) and are pre-rendered by the notebooks as PNG images.
 
 ---
 
-## 📂 Project Structure
+## How the Forecasting Works
+
+Each product's sales are aggregated to **monthly units sold** and modeled separately. Products with fewer than **24 months** of data are skipped.
+
+1. **ARIMA.** `pmdarima.auto_arima` fits a seasonal model (`m=12`, `d=1`, `D=1`, stepwise search, AIC criterion) per product.
+2. **Residuals.** The gap between observed sales and the ARIMA output is standardized with `StandardScaler`.
+3. **LSTM.** A network trained on the residual series using a **3-month sliding window**:
+   ```
+   Input (3 × 1) → LSTM(100, ReLU) → Dropout(0.2) → LSTM(50, ReLU) → Dropout(0.2) → Dense(1)
+   ```
+   Adam optimizer, MSE loss, 100 epochs, batch size 16.
+4. **Blend.** The final forecast is a weighted sum, rounded to whole units and floored at 1:
+   ```
+   forecast = w_arima × ARIMA + w_lstm × LSTM
+   ```
+
+| Notebook | Store | Products | Blend (ARIMA / LSTM) | Training data | Held-out metrics |
+|---|---|---|---|---|---|
+| `H_M.ipynb` | H&M | 80 | 90% / 10% | 2015–2022 (2023 held out) | Yes |
+| `R1.ipynb` | Retail Store 1 | 54 | 90% / 10% | 2015–2023 | No |
+| `R2.ipynb` | Retail Store 2 | 40 | 95% / 5% | 2015–2023 | No |
+
+The sliding window consumes 3 of the 60 requested steps, so each forecast file contains **57 months (Jan 2024 – Sep 2028)**.
+
+Each notebook then merges actual and forecast sales per product and combines them into one file per store (`HM_All_Product_Sales`, `ALLRetail_Store_1`, `ALLRetail_Store_2`), which the dashboard reads from `data/`.
+
+---
+
+## Project Structure
 
 ```
 Intelligent-Retail-Demand-Forecasting-System/
 │
-├── Retail_Store_1/                        ← External retail dataset 1 (CSV files)
+├── src/
+│   ├── app.py                       # Flask + Flask-SocketIO application (entry point)
+│   ├── templates/                   # Jinja2 pages: index, all_products, trending,
+│   │                                #   recommend, lowest, help
+│   ├── static/
+│   │   ├── css/Main.css             # Styles (light / dark theme)
+│   │   ├── js/main.js               # Theme toggle, search/filter, image viewer
+│   │   └── images/                  # Forecast chart PNGs used by the pages
+│   └── tempCodeRunnerFile.py        # Editor scratch file (not used)
 │
-├── Retail_Store_2/                        ← External retail dataset 2 (CSV files)
+├── static/images/                   # Second copy of the chart PNGs; /product_image
+│                                    #   checks this path relative to the working directory
 │
-├── Sales_Forecast_Results_with_Accuracy/  ← Generated forecast outputs
-│   ├── <ProductName>_forecast.csv         ← Per-product hybrid forecast (2024–2028)
-│   └── <ProductName>_forecast.png         ← Per-product time-series plot
+├── data/
+│   ├── H_M.csv                      # Raw H&M transactions
+│   ├── R1(Main).csv                 # Raw Retail Store 1 transactions
+│   ├── R2.csv                       # Raw Retail Store 2 transactions
+│   ├── HM_All_Product_Sales.csv     # Monthly history + forecast, H&M   (used by dashboard)
+│   ├── ALLRetail_Store_1.csv        # Monthly history + forecast, Store 1 (used by dashboard)
+│   ├── ALLRetail_Store_2.csv        # Monthly history + forecast, Store 2 (used by dashboard)
+│   └── All_H&M.csv, M(H&M).csv,     # Alternate copies / subsets (not used by the app)
+│       H_M copy.csv
 │
-├── data/                                  ← Raw datasets
-│   └── H_M.csv                            ← Primary H&M sales data (2015–2023)
+├── Sales_Forecast_Results_with_Accuracy/   # H&M: 80 forecast CSVs + PNGs + accuracy metrics
+├── Retail_Store_1/                         # Store 1: 54 forecast CSVs + PNGs
+├── Retail_Store_2/                         # Store 2: 40 forecast CSVs + PNGs
 │
-├── src/                                   ← Forecasting model source code
-│   └── *.py                               ← ARIMA, LSTM, hybrid pipeline scripts
-│
-├── static/                                ← Frontend static assets
-│   ├── css/                               ← Stylesheets (light and dark mode)
-│   ├── js/                                ← JavaScript (dark mode toggle, filtering)
-│   └── images/                            ← Product images for dynamic rendering
-│
-├── templates/                             ← Flask HTML templates (Jinja2)
-│   ├── index.html                         ← Home — H&M product dashboard
-│   ├── trending.html                      ← Top-selling products page
-│   ├── lowest.html                        ← Lowest-selling products page
-│   ├── recommend.html                     ← Inventory recommendations page
-│   ├── all_products.html                  ← Full cross-store product catalogue
-│   └── help.html                          ← User guidance and feature documentation
-│
-├── app.py                                 ← Flask application entry point
-├── H_M.ipynb                              ← H&M data exploration and model notebook
-├── R1.ipynb                               ← Retail Store 1 analysis notebook
-├── R2.ipynb                               ← Retail Store 2 analysis notebook
-└── tempCodeRunnerFile.py                  ← IDE temp file (safe to ignore)
+├── H_M.ipynb                        # H&M pipeline (train/test split, metrics, forecast, merge)
+├── R1.ipynb                         # Retail Store 1 pipeline
+├── R2.ipynb                         # Retail Store 2 pipeline
+└── README.md
 ```
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
-### Prerequisites
+Developed with Python 3.11.
 
-| Tool | Version |
-|---|---|
-| Python | 3.8 or later |
-| pip | Latest |
-| Git | Any recent version |
-
-### Installation
+### Run the dashboard
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/yaseensharaf/-DSP-.git
-cd -DSP-
+# 1. Clone
+git clone https://github.com/yaseensharaf/Intelligent-Retail-Demand-Forecasting-System.git
+cd Intelligent-Retail-Demand-Forecasting-System
 
-# 2. Create and activate a virtual environment (recommended)
+# 2. (Recommended) virtual environment
 python -m venv venv
+source venv/bin/activate        # macOS / Linux
+venv\Scripts\activate           # Windows
 
-# On macOS/Linux:
-source venv/bin/activate
+# 3. Install dashboard dependencies
+pip install flask flask-socketio pandas
 
-# On Windows:
-venv\Scripts\activate
-
-# 3. Install all dependencies
-pip install -r requirements.txt
+# 4. Start the app -- run this from the repository root
+python src/app.py
 ```
 
-### Dependencies
+Open **http://127.0.0.1:5001**.
 
-If no `requirements.txt` is present, install manually:
+> **Run from the repository root.** The app reads `data/` and `static/images/` using paths relative to the working directory, so starting it from inside `src/` will show empty pages.
+
+### Regenerate the forecasts (optional)
+
+The forecast outputs are already included, so this is only needed to retrain.
 
 ```bash
-pip install flask pandas numpy matplotlib scikit-learn tensorflow \
-            pmdarima statsmodels plotly openpyxl bootstrap-flask
+pip install pandas numpy matplotlib statsmodels pmdarima scikit-learn tensorflow openpyxl jupyter
+jupyter notebook
 ```
 
-### Generate Forecasts
+1. The notebooks read `H_M.csv`, `R1(Main).csv`, and `R2.csv` from their own working directory. Copy them from `data/` next to the notebooks (or edit the `file_path` line).
+2. Run `H_M.ipynb`, `R1.ipynb`, and `R2.ipynb`. Each writes per-product forecast CSVs and PNGs, then merges and combines them into one Excel file per store.
+3. Save the combined series as CSV in `data/` (`HM_All_Product_Sales.csv`, `ALLRetail_Store_1.csv`, `ALLRetail_Store_2.csv`) so the dashboard picks them up.
 
-Run the forecasting notebooks or pipeline scripts first to produce all CSV and PNG outputs.
-You can use the provided Jupyter notebooks:
-
-```bash
-# Open notebooks for each dataset
-jupyter notebook H_M.ipynb     # H&M forecasting pipeline
-jupyter notebook R1.ipynb      # Retail Store 1 analysis
-jupyter notebook R2.ipynb      # Retail Store 2 analysis
-```
-
-Or run the forecasting scripts directly from `src/`:
-
-```bash
-python src/<forecasting_script>.py
-```
-
-This will:
-- Load and preprocess all datasets
-- Train ARIMA and LSTM models for each eligible product
-- Generate 60-month hybrid forecasts
-- Export results to `Sales_Forecast_Results_with_Accuracy/`
-
-### Launch the Dashboard
-
-```bash
-python app.py
-```
-
-Then open your browser and navigate to:
-
-```
-http://127.0.0.1:5000
-```
+Training runs an ARIMA search plus a 100-epoch LSTM for every product, so a full run takes a while.
 
 ---
 
-## 📱 Dashboard Features
+## Data
 
-### Home — Product Dashboard
-The default view displays all H&M products in a card-based grid. Each card shows the product image, name, category, and price. Users can search by keyword or filter by category in real time without a page reload.
+| File | Rows | Description |
+|---|---|---|
+| `data/H_M.csv` | 674,517 | H&M transactions: `TransactionID`, `ProductID`, `ProductName`, `Category`, `Price`, `QuantitySold`, `SaleDate`, `Season`, `Year` |
+| `data/R1(Main).csv` | 70,000 | Store 1 transactions (same columns plus `DiscountApplied`, `TransactionAmount`, `CustomerLoyalty`) |
+| `data/R2.csv` | 50,000 | Store 2 transactions (same columns as Store 1) |
+| `data/HM_All_Product_Sales.csv` | 13,200 | H&M monthly series, 80 products: `ProductName`, `Date`, `Sales` (history + forecast) |
+| `data/ALLRetail_Store_1.csv` | 8,908 | Store 1 monthly series, 54 products |
+| `data/ALLRetail_Store_2.csv` | 4,744 | Store 2 monthly series, 40 products |
+| `Sales_Forecast_Results_with_Accuracy/*_forecast_2024_2028.csv` | 57 each | `Date`, `Predicted Sales` |
 
-### Trending Products
-Aggregates post-2023 predicted sales across all three stores and ranks products by total volume. Designed to help managers prioritise restocking of high-demand items.
-
-### Lowest-Selling Products
-Displays the five H&M products with the weakest post-2023 predicted performance. Intended to trigger review decisions — whether to discount, promote, or replace these items.
-
-### Recommendations
-Identifies high-performing products from the two external retail datasets that do not currently appear in H&M's catalogue. These are surfaced as potential additions to inventory, ranked by external sales performance within matching categories.
-
-### All Products
-A unified catalogue combining products from all three stores. Supports filtering by store, category, and product name simultaneously. Used for broad market comparison and competitor benchmarking.
-
-### Help
-A plain-language guide explaining how to navigate the dashboard, interpret forecast charts, and use the filtering and recommendation features. Designed for non-technical retail managers.
+`Sales` is **units sold per month**. Forecast files use month-end dates.
 
 ---
 
-## 🔄 Data Pipeline
+## API Endpoints
 
-```
-Raw CSV Files (H&M + Store 1 + Store 2)
-        │
-        ▼
-  Load with Pandas
-        │
-        ▼
-  Standardise SaleDate → datetime index
-        │
-        ▼
-  Monthly Resampling → resample('M').sum()
-        │
-        ▼
-  Missing Value Imputation → forward-fill + linear interpolation
-        │
-        ▼
-  Feature Engineering → Month, Year, Season
-        │
-        ▼
-  Filter products with < 24 months data (excluded)
-        │
-        ▼
-  ARIMA Training → auto_arima() → 60-month forecast
-        │
-        ▼
-  Residual Computation → actual − ARIMA forecast
-        │
-        ▼
-  StandardScaler → normalise residuals
-        │
-        ▼
-  LSTM Training → 3-month sliding window → residual prediction
-        │
-        ▼
-  Inverse Transform → rescale residuals
-        │
-        ▼
-  Hybrid Integration → (0.9 × ARIMA) + (0.1 × LSTM)
-        │
-        ▼
-  Export → CSV + PNG per product + ALL_H&M.xlsx
-        │
-        ▼
-  Flask Dashboard → interactive visualisation
-```
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/product_image/<product_name>` | Returns `{"image_url": ...}` for the product's chart image (spaces map to underscores), or a 404 error. |
+| GET | `/product_sales/<product_name>` | Returns `{"dates": [...], "quantities": [...]}` with the combined historical + forecast series across stores, or a 404 error. |
+| POST | `/updateAll` | Saves the posted JSON to `update_data.json` and broadcasts a Socket.IO `data_updated` event. |
+| POST | `/toggle-dark-mode` | Flips a dark-mode flag in the server session. |
 
 ---
 
-## 🧪 Testing
+## Known Limitations & Future Work
 
-A structured multi-layer testing strategy was applied across all system components:
+**Limitations**
 
-| Test ID | Module | Type | Result |
-|---|---|---|---|
-| T1 | Forecast folder creation | File system validation | ✅ Passed |
-| T2 | Dataset loading and preprocessing | Data validation | ✅ Passed |
-| T3 | ARIMA model training | Model training test | ✅ Passed |
-| T4 | Residual computation | Data processing validation | ✅ Passed |
-| T5 | LSTM model training | Model training test | ✅ Passed |
-| T6 | Hybrid forecast integration | Integration test | ✅ Passed |
-| T7 | Forecast CSV and PNG export | File export test | ✅ Passed |
-| T8 | Dashboard page navigation | UI navigation test | ✅ Passed |
-| T9 | Product image API endpoint | API response test | ✅ Passed |
-| T10 | Product sales data API endpoint | API response test | ✅ Passed |
-| T11 | Cross-browser compatibility | Browser test (Chrome, Firefox, Edge, Safari) | ✅ Passed |
-| T12 | Dark mode toggle | UI functionality test | ✅ Passed |
+- **Accuracy is measured for H&M only.** Stores 1 and 2 have no held-out evaluation, and no ARIMA-only baseline is included, so the gain from the hybrid step is not quantified.
+- **The LSTM sees very little data.** For H&M it trains on 9 windows built from a 12-month residual series, which is why its weight in the blend is small (10%, or 5% for Store 2).
+- **H&M final forecasts are not refit on 2023.** The H&M model is trained on 2015–2022 and reused for the 2024–2028 forecast, whereas Stores 1 and 2 are trained through 2023.
+- **Run from the repository root** (see Getting Started). Data paths are relative.
+- **Case-sensitive file systems.** The app looks for `data/R1(main).csv`, but the file is named `R1(Main).csv`. On Linux, Retail Store 1 products therefore appear as "Uncategorized"; renaming the file fixes it.
+- **Local development settings.** `app.py` runs with `debug=True` and a hard-coded session secret, so it is not production-ready as is.
+- **No automated tests** are included in the repository.
 
-**Testing tools used:** Manual browser testing · Postman (API endpoints) · Python assertions (model outputs)
+**Future work**
 
----
-
-## ⚠️ Known Limitations & Future Work
-
-### Current Limitations
-
-| Area | Limitation |
-|---|---|
-| **Forecast accuracy** | Hybrid model is less reliable for products with highly volatile or sparse sales histories |
-| **Real-time updates** | Dashboard requires a manual refresh to reflect new forecast data |
-| **Scalability** | Flat CSV storage does not scale well beyond a small number of stores |
-| **Automated testing** | No Pytest or Selenium suite; testing was primarily manual |
-| **Hyperparameter tuning** | LSTM architecture was not exhaustively tuned across all product types |
-
-### Proposed Future Enhancements
-
-- **Advanced models** — evaluate Facebook Prophet, XGBoost, or Temporal Fusion Transformers for improved accuracy on volatile products
-- **Real-time dashboard** — integrate Flask-SocketIO for live data streaming without page reloads
-- **Database migration** — replace CSV storage with PostgreSQL for multi-user access and faster querying
-- **Automated testing** — implement Pytest (unit/integration) and Selenium (UI) test suites with CI/CD integration
-- **User research** — conduct usability studies with retail managers to inform future dashboard features and workflows
+- Add an ARIMA-only baseline and evaluate every store on a held-out year.
+- Refit on all available data before producing the final forecast.
+- Add a `requirements.txt`, unit tests (pytest), a Dockerfile, and a CI workflow.
+- Move the CSV storage to a database (for example PostgreSQL) and load the secret key from the environment.
+- Try additional models (Prophet, XGBoost, Temporal Fusion Transformer) on volatile products.
 
 ---
 
-## 👨‍💻 Developer
+## Author & License
 
-
-
-[![GitHub](https://img.shields.io/badge/GitHub-yaseensharaf-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yaseensharaf)
-
-
-
----
-
-## 📄 License
+**Yaseen Sharaf** · [GitHub](https://github.com/yaseensharaf) · [LinkedIn](https://www.linkedin.com/in/yaseensharaf04/)
 
 ```
 Copyright © 2025 Yaseen Sharaf. All rights reserved.
