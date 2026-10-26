@@ -1,0 +1,20 @@
+seed: 42
+season_length: 12
+stores:
+  hm:     {name: "H&M",            path: data/raw/hm.csv}
+  store1: {name: "Retail Store 1", path: data/raw/store1.csv}
+  store2: {name: "Retail Store 2", path: data/raw/store2.csv}
+data:
+  encoding: utf-8
+  date_column: SaleDate
+  date_format: "%d/%m/%Y"
+  quantity_column: QuantitySold
+  start: "2015-01"
+  end:   "2023-12"
+backtest:
+  origins: ["2020-12", "2021-12", "2022-12"]   # train up to and including this month
+  horizon: 12
+models: [naive, seasonal_naive, historical_mean, drift]
+paths:
+  outputs: outputs
+  report:  reports/results.md
