@@ -14,9 +14,9 @@ socketio = SocketIO(app)
 # Load product data from all stores (for all_products.html)
 def get_all_products():
     file_paths = [
-        {'path': 'data/HM_All_Product_Sales.csv', 'store': 'H&M', 'category_path': 'data/H_M.csv'},  
-        {'path': 'data/ALLRetail_Store_1.csv', 'store': 'Retail Store 1', 'category_path': 'data/R1(main).csv'},
-        {'path': 'data/ALLRetail_Store_2.csv', 'store': 'Retail Store 2', 'category_path': 'data/R2.csv'}
+        {'path': 'data/HM_All_Product_Sales.csv', 'store': 'H&M', 'category_path': 'data/raw/hm.csv'},
+        {'path': 'data/ALLRetail_Store_1.csv', 'store': 'Retail Store 1', 'category_path': 'data/raw/store1.csv'},
+        {'path': 'data/ALLRetail_Store_2.csv', 'store': 'Retail Store 2', 'category_path': 'data/raw/store2.csv'}
     ]
     all_products = []
 
@@ -36,7 +36,7 @@ def get_all_products():
             # Load category data for this store if available
             category_data = None
             if os.path.exists(category_data_path):
-                category_data = pd.read_csv(category_data_path, encoding='ISO-8859-1')
+                category_data = pd.read_csv(category_data_path, encoding='utf-8')
                 # Normalize ProductName for consistent matching
                 category_data['ProductName'] = category_data['ProductName'].str.lower().str.strip()
                 category_data = category_data[['ProductName', 'Category']].drop_duplicates(subset='ProductName')
@@ -60,7 +60,7 @@ def get_all_products():
 # Load only H&M products from two datasets (for index.html)
 def get_hm_products():
     all_data_path = 'data/HM_All_Product_Sales.csv'  # Changed from ALL_H&M.csv
-    category_data_path = 'data/H_M.csv'  # Contains ProductName + Category
+    category_data_path = 'data/raw/hm.csv'  # Contains ProductName + Category
 
     # Load HM_All_Product_Sales.csv if it exists
     if os.path.exists(all_data_path):
@@ -74,7 +74,7 @@ def get_hm_products():
     # Load H_M.csv if it exists
     category_data = None
     if os.path.exists(category_data_path):
-        category_data = pd.read_csv(category_data_path, encoding='ISO-8859-1')
+        category_data = pd.read_csv(category_data_path, encoding='utf-8')
         # Normalize ProductName for consistent matching
         category_data['ProductName'] = category_data['ProductName'].str.lower().str.strip()
         category_data = category_data[['ProductName', 'Category']].drop_duplicates(subset='ProductName')

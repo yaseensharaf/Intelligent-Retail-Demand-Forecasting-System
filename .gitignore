@@ -1,0 +1,21 @@
+# Python environments and caches
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Build and packaging artifacts
+build/
+dist/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Generated data and local dashboard state
+outputs/
+*.xlsx
+update_data.json

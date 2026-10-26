@@ -1,0 +1,3 @@
+# Archived notebooks retain their original forecasting code during Phase 0.
+extend-exclude = ["notebooks/legacy"]
+target-version = "py311"

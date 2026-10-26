@@ -8,12 +8,12 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-RAW = {"H&M": "data/H_M.csv", "Retail Store 1": "data/R1(Main).csv", "Retail Store 2": "data/R2.csv"}
+RAW = {"H&M": "data/raw/hm.csv", "Retail Store 1": "data/raw/store1.csv", "Retail Store 2": "data/raw/store2.csv"}
 METRICS = ROOT / "Sales_Forecast_Results_with_Accuracy" / "H&M_accuracy_metrics.csv"
 
 
 def load(path: str) -> pd.DataFrame:
-    df = pd.read_csv(ROOT / path, encoding="cp1252")
+    df = pd.read_csv(ROOT / path, encoding="utf-8")
     df["SaleDate"] = pd.to_datetime(df["SaleDate"], format="%d/%m/%Y")
     return df
 
