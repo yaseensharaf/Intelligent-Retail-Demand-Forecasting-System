@@ -1,0 +1,14 @@
+# Python 3.11; NumPy 1.x is required by pmdarima 2.0.4's binary wheels.
+pandas==2.2.3
+numpy==1.26.4
+statsmodels==0.14.4
+pmdarima==2.0.4
+scikit-learn==1.5.2
+tensorflow-cpu==2.18.0
+lightgbm==4.5.0
+flask==3.0.3
+pyyaml==6.0.2
+pytest==8.3.3
+ruff==0.7.1
+# Required by the existing dashboard.
+Flask-SocketIO==5.3.6
