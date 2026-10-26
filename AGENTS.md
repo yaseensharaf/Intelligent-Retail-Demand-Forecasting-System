@@ -16,7 +16,8 @@ every known bug with evidence. Do not reintroduce any issue listed there.
   Never report a result without the baselines next to it.
 - Set seeds (`numpy`, `random`, `tensorflow`/`torch`) from config.
 - Keep forecasts as floats until the final display layer. Don't round or floor before scoring.
-- Read CSVs with an explicit encoding. Store 2 raw data is `cp1252`; convert once to UTF-8 on ingest.
+- Read CSVs with an explicit encoding. The raw files in `data/raw/` are UTF-8. The old generated file
+  `data/ALLRetail_Store_2.csv` is cp1252; it is replaced by pipeline outputs, so never read it as UTF-8.
 - Product names are matched exactly; normalise to a `product_id` slug for URLs and file names.
   Never lowercase display names.
 - Small, reviewable commits. One phase per branch (`phase-1-pipeline`, …). Run `pytest` and

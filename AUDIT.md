@@ -116,8 +116,9 @@ the mean by much** — which is exactly what §1.5 shows. That's not your fault,
 dissertation must say it, and the improved version should add a real dataset.
 
 Other data issues:
-- `R2.csv` / Store 2 output is Windows-1252 encoded (byte 0x92 apostrophe); `pd.read_csv`
-  with UTF-8 crashes. The app works around this with `ISO-8859-1`, which silently mangles it.
+- The generated Store 2 dashboard file `data/ALLRetail_Store_2.csv` is Windows-1252 encoded
+  (byte 0x92 apostrophe); `pd.read_csv` with UTF-8 crashes on it. The raw `R2.csv` itself is valid
+  UTF-8. The app reads every file as `ISO-8859-1`, which hides the mismatch.
 - Monthly series are built with `groupby` in the merge cells, which drops empty months
   instead of filling 0 (Store 2's dashboard series has gaps, e.g. 2015-05 → 2017-12).
 - `data/` holds five near-duplicate copies (`H_M copy.csv`, `All_H&M.csv`, `M(H&M).csv`…).
