@@ -19,6 +19,15 @@ def test_wape_hand_computed():
     assert metrics.wape([10, 20], [12, 16]) == pytest.approx(20.0)
 
 
+def test_pooled_wape_sums_across_groups_rather_than_averaging_ratios():
+    # product A: actual 100, error 10 -> ratio 10%; product B: actual 1, error 1 -> ratio 100%.
+    # A mean-of-ratios WAPE would be dominated by B's 100%; pooled WAPE is
+    # (10+1)/(100+1) ~= 10.9%, which is what the headline report metric needs.
+    y = [100, 1]
+    f = [90, 2]
+    assert metrics.pooled_wape(y, f) == pytest.approx(11 / 101 * 100)
+
+
 def test_bias_positive_means_over_forecast():
     assert metrics.bias([10, 10], [12, 14]) == pytest.approx(3.0)
     assert metrics.bias([10, 10], [8, 6]) == pytest.approx(-3.0)

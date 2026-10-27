@@ -104,7 +104,7 @@ def test_backtest_store_and_score_and_summarise(tiny_config):
 
     n_products = store.monthly.shape[1]
     n_origins = len(tiny_config["backtest"]["origins"])
-    n_models = len(tiny_config["models"])
+    n_models = len(tiny_config["models"]) + len(tiny_config.get("global_models", []))
     h = tiny_config["backtest"]["horizon"]
     assert len(forecasts) == n_products * n_origins * n_models * h
 
@@ -114,9 +114,30 @@ def test_backtest_store_and_score_and_summarise(tiny_config):
         assert col in scores.columns
 
     summary = backtest.summarise(scores)
-    assert set(summary["model"]) == set(tiny_config["models"])
-    assert summary["wins"].sum() == n_products * n_origins
+    assert set(summary["model"]) == set(tiny_config["models"]) | set(tiny_config.get("global_models", []))
+    assert summary["wins_product_origin_pairs"].sum() == n_products * n_origins
 
     comparison = backtest.compare_to_reference(forecasts, reference="historical_mean")
-    assert set(comparison["model"]) == set(tiny_config["models"]) - {"historical_mean"}
+    expected_models = (set(tiny_config["models"]) | set(tiny_config.get("global_models", []))) - {"historical_mean"}
+    assert set(comparison["model"]) == expected_models
     assert (comparison["p_value"] >= 0).all() and (comparison["p_value"] <= 1).all()
+
+
+def test_backtest_store_truncates_to_first_n_products(tiny_config):
+    store = data.load_store("tiny", tiny_config)
+    forecasts = backtest.backtest_store(store, tiny_config, products=1)
+
+    n_origins = len(tiny_config["backtest"]["origins"])
+    n_models = len(tiny_config["models"])
+    h = tiny_config["backtest"]["horizon"]
+    assert forecasts["product"].nunique() == 1
+    assert len(forecasts) == 1 * n_origins * n_models * h
+
+
+def test_pick_reference_baseline_returns_a_baseline_model(tiny_config):
+    store = data.load_store("tiny", tiny_config)
+    forecasts = backtest.backtest_store(store, tiny_config)
+    scores = backtest.score(forecasts, store.monthly, m=tiny_config["season_length"])
+
+    reference = backtest.pick_reference_baseline(scores)
+    assert reference in backtest.BASELINE_MODELS

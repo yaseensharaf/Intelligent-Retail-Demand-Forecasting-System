@@ -9,7 +9,7 @@ from typing import Any
 
 import pandas as pd
 
-from forecasting import backtest
+from forecasting import backtest, metrics
 
 # AUDIT.md section 1.5: the legacy ARIMA-LSTM hybrid's reported H&M MAPE.
 # That figure was scored on Jan-Sep 2023 only (9 of 12 months), not the full
@@ -51,11 +51,35 @@ def _metrics_table(scores: pd.DataFrame) -> str:
     display_cols = (
         ["model"]
         + [f"{m}_mean" for m in backtest.METRIC_COLUMNS]
-        + ["coverage80_mean", "coverage95_mean", "wins"]
+        + ["coverage80_mean", "coverage95_mean", "wins_product_origin_pairs"]
     )
     table = summary[display_cols].round(3)
     table = _bold_best(table, [f"{m}_mean" for m in LOWER_IS_BETTER])
+    table = table.rename(columns={"wins_product_origin_pairs": "wins (product x origin pairs)"})
     return _dataframe_to_markdown(table)
+
+
+def _pooled_wape_table(forecasts: pd.DataFrame) -> str:
+    rows = []
+    for model, group in forecasts.groupby("model"):
+        rows.append({"model": model, "pooled_wape": metrics.pooled_wape(group["actual"], group["mean"])})
+    table = pd.DataFrame(rows).sort_values("pooled_wape").round(3)
+    table = _bold_best(table, ["pooled_wape"])
+    return _dataframe_to_markdown(table)
+
+
+def _mape_undefined_note(scores: pd.DataFrame) -> str:
+    # mape is NaN for a (product, origin) pair whenever any actual in that
+    # window is zero -- that never depends on which model produced the
+    # forecast, so count pairs once using any single model's rows.
+    one_model = scores[scores["model"] == scores["model"].iloc[0]]
+    total_pairs = len(one_model)
+    undefined_pairs = int(one_model["mape"].isna().sum())
+    return (
+        f"MAPE undefined for {undefined_pairs} of {total_pairs} product x origin combinations "
+        "(at least one zero-actual month in that window) -- pooled WAPE above is the headline "
+        "metric for stores where this is common."
+    )
 
 
 def _comparison_table(forecasts: pd.DataFrame, reference: str) -> str:
@@ -85,14 +109,28 @@ def write_report(cfg: dict[str, Any], stores: list[str]) -> Path:
         scores = pd.read_csv(outputs / f"backtest_{store}_scores.csv")
         forecasts = pd.read_csv(outputs / f"backtest_{store}_forecasts.csv", parse_dates=["origin", "date"])
 
+        lines.append("### Headline: pooled WAPE by model (best in bold)")
+        lines.append("")
+        lines.append(
+            "Sum of absolute errors over sum of absolute actuals across every product, "
+            "not a mean of per-product WAPE values -- the latter is dominated by near-zero "
+            "actuals on sparse products."
+        )
+        lines.append("")
+        lines.append(_pooled_wape_table(forecasts))
+        lines.append("")
+        lines.append(_mape_undefined_note(scores))
+        lines.append("")
+
         lines.append("### Metrics (mean over products & origins, best in bold)")
         lines.append("")
         lines.append(_metrics_table(scores))
         lines.append("")
 
-        lines.append("### Win counts and Diebold-Mariano vs historical_mean")
+        reference = backtest.pick_reference_baseline(scores)
+        lines.append(f"### Win counts and Diebold-Mariano vs best baseline ({reference})")
         lines.append("")
-        lines.append(_comparison_table(forecasts, reference="historical_mean"))
+        lines.append(_comparison_table(forecasts, reference=reference))
         lines.append("")
 
     lines.append("## Reference: legacy hybrid")

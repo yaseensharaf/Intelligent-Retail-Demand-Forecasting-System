@@ -11,10 +11,24 @@ data:
   quantity_column: QuantitySold
   start: "2015-01"
   end:   "2023-12"
+forecast:
+  end: "2028-12"   # python -m forecasting run forecasts data.end+1month .. this, inclusive
 backtest:
   origins: ["2020-12", "2021-12", "2022-12"]   # train up to and including this month
   horizon: 12
-models: [naive, seasonal_naive, historical_mean, drift]
+models: [naive, seasonal_naive, historical_mean, drift, ets, sarima, sarima_lstm_hybrid, croston, tsb]
+model_params:
+  sarima: {max_p: 2, max_q: 2, max_P: 1, max_Q: 1}
+  sarima_lstm_hybrid: {window: 12, units: 8, epochs: 5, patience: 1, validation_h: 12}
+global_models: [lightgbm_global]
+global_model_params:
+  lightgbm_global:
+    lags: [1, 2, 3, 12]
+    windows: [3, 6, 12]
+    num_boost_round: 200
+    validation_h: 12
+    min_data_in_leaf: 10
+n_jobs: -1
 paths:
   outputs: outputs
   report:  reports/results.md

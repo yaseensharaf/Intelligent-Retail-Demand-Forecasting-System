@@ -71,6 +71,7 @@ def tiny_config(tmp_path: Path, tiny_transactions_csv: Path) -> dict[str, Any]:
             "start": START,
             "end": END,
         },
+        "forecast": {"end": "2024-12"},
         "backtest": {"origins": ["2021-12", "2022-12"], "horizon": 12},
         "models": ["naive", "seasonal_naive", "historical_mean", "drift"],
         "paths": {

@@ -7,7 +7,7 @@ import logging
 import time
 from pathlib import Path
 
-from forecasting import backtest, data, report
+from forecasting import backtest, data, forecast, report
 from forecasting.config import load_config, set_seeds
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ def _run_backtest(args: argparse.Namespace) -> int:
     for store_key in stores:
         start = time.perf_counter()
         store = data.load_store(store_key, cfg)
-        forecasts = backtest.backtest_store(store, cfg)
+        forecasts = backtest.backtest_store(store, cfg, products=args.products)
         scores = backtest.score(forecasts, store.monthly, m=cfg["season_length"])
 
         forecasts.to_csv(outputs / f"backtest_{store_key}_forecasts.csv", index=False)
@@ -57,8 +57,13 @@ def _run_report(args: argparse.Namespace) -> int:
     return 0
 
 
-def _run_run(_args: argparse.Namespace) -> int:
-    print("added in Phase 2")
+def _run_run(args: argparse.Namespace) -> int:
+    cfg = load_config(args.config)
+    set_seeds(cfg["seed"])
+    stores = _resolve_stores(args.store, cfg)
+    written = forecast.run_all(stores, cfg, products=args.products)
+    for store_key, path in written.items():
+        logger.info("forecast %s -> %s", store_key, path)
     return 0
 
 
@@ -69,6 +74,8 @@ def build_parser() -> argparse.ArgumentParser:
     backtest_parser = sub.add_parser("backtest")
     backtest_parser.add_argument("--store", default=ALL_STORES)
     backtest_parser.add_argument("--config", default="config/default.yaml")
+    backtest_parser.add_argument("--products", type=int, default=None,
+                                  help="only backtest the first N products of each store (dev speed)")
     backtest_parser.set_defaults(func=_run_backtest)
 
     report_parser = sub.add_parser("report")
@@ -77,6 +84,10 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser.set_defaults(func=_run_report)
 
     run_parser = sub.add_parser("run")
+    run_parser.add_argument("--store", default=ALL_STORES)
+    run_parser.add_argument("--config", default="config/default.yaml")
+    run_parser.add_argument("--products", type=int, default=None,
+                             help="only forecast the first N products of each store (dev speed)")
     run_parser.set_defaults(func=_run_run)
 
     return parser

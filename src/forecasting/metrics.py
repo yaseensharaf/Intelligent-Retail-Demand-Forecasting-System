@@ -27,6 +27,16 @@ def wape(y, f) -> float:
     return float(np.sum(np.abs(y - f)) / denom * 100)
 
 
+def pooled_wape(y, f) -> float:
+    """WAPE with the numerator and denominator summed across every row
+    passed in (e.g. every product and origin for one model), not a mean of
+    per-group WAPE values. This is the headline number for stores like
+    Store 2 where many per-product/per-origin windows have near-zero
+    actuals and a per-group mean WAPE would be dominated by noise.
+    """
+    return wape(y, f)
+
+
 def bias(y, f) -> float:
     y, f = _as_array(y), _as_array(f)
     return float(np.mean(f - y))
